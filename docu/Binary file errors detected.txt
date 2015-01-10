@@ -1,0 +1,24 @@
+=== Pre-bind state information ===
+LOG: DisplayName = Microsoft.Data.Edm, Version=5.6.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+ (Fully-specified)
+LOG: Appbase = file:///D:/umbraco cms/umbraco versions/UmbracoCms.7.2.1e/
+LOG: Initial PrivatePath = D:\umbraco cms\umbraco versions\UmbracoCms.7.2.1e\bin
+Calling assembly : (Unknown).
+===
+LOG: This is an inspection only bind.
+LOG: Using application configuration file: D:\umbraco cms\umbraco versions\UmbracoCms.7.2.1e\web.config
+LOG: Using host configuration file: D:\Benutzer\Seefeld\Eigene Dokumente\IISExpress\config\aspnet.config
+LOG: Using machine configuration file from C:\Windows\Microsoft.NET\Framework\v4.0.30319\config\machine.config.
+LOG: Attempting download of new URL file:///C:/Windows/Microsoft.NET/Framework/v4.0.30319/Temporary ASP.NET Files/root/993c4ed6/e3d42bb6/TempDomaine6876803-31ff-413d-bf2f-fd3fa42db9bf/Microsoft.Data.Edm.DLL.
+LOG: Attempting download of new URL file:///C:/Windows/Microsoft.NET/Framework/v4.0.30319/Temporary ASP.NET Files/root/993c4ed6/e3d42bb6/TempDomaine6876803-31ff-413d-bf2f-fd3fa42db9bf/Microsoft.Data.Edm/Microsoft.Data.Edm.DLL.
+LOG: Attempting download of new URL file:///D:/umbraco cms/umbraco versions/UmbracoCms.7.2.1e/bin/Microsoft.Data.Edm.DLL.
+LOG: Attempting download of new URL file:///D:/umbraco cms/umbraco versions/UmbracoCms.7.2.1e/bin/Microsoft.Data.Edm/Microsoft.Data.Edm.DLL.
+LOG: Attempting download of new URL file:///C:/Windows/Microsoft.NET/Framework/v4.0.30319/Temporary ASP.NET Files/root/993c4ed6/e3d42bb6/TempDomaine6876803-31ff-413d-bf2f-fd3fa42db9bf/Microsoft.Data.Edm.EXE.
+LOG: Attempting download of new URL file:///C:/Windows/Microsoft.NET/Framework/v4.0.30319/Temporary ASP.NET Files/root/993c4ed6/e3d42bb6/TempDomaine6876803-31ff-413d-bf2f-fd3fa42db9bf/Microsoft.Data.Edm/Microsoft.Data.Edm.EXE.
+LOG: Attempting download of new URL file:///D:/umbraco cms/umbraco versions/UmbracoCms.7.2.1e/bin/Microsoft.Data.Edm.EXE.
+LOG: Attempting download of new URL file:///D:/umbraco cms/umbraco versions/UmbracoCms.7.2.1e/bin/Microsoft.Data.Edm/Microsoft.Data.Edm.EXE.
+
+   bei System.Reflection.RuntimeAssembly.GetExportedTypes(RuntimeAssembly assembly, ObjectHandleOnStack retTypes)
+   bei System.Reflection.RuntimeAssembly.GetExportedTypes()
+   bei Umbraco.Core.Packaging.PackageBinaryInspector.PerformScan[T](IList`1 loaded, String[]& errorReport)
+

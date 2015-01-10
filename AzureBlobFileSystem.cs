@@ -13,6 +13,7 @@ using Umbraco.Core;
 using Umbraco.Core.IO;
 using System.Web.Caching;
 using System.Web;
+using System.Configuration;
 
 namespace idseefeld.de.UmbracoAzure
 {
@@ -23,11 +24,13 @@ namespace idseefeld.de.UmbracoAzure
             public int Number { get; set; }
         }
         private string _rootPath;
+        private string _root;
         private string _rootUrl;
+        private string _containerName;
         private CloudBlobClient cloudBlobClient;
         private CloudStorageAccount cloudStorageAccount;
         private CloudBlobContainer mediaContainer;
-        private Dictionary<string, string> mimeTypes;
+        //private Dictionary<string, string> mimeTypes;
         private readonly Dictionary<string, CloudBlockBlob> cachedBlobs = new Dictionary<string, CloudBlockBlob>();
         private readonly ILogger logger;
 
@@ -103,6 +106,13 @@ namespace idseefeld.de.UmbracoAzure
         }
         #endregion
 
+        public AzureBlobFileSystem()
+        {
+            Init();
+            logger = new LogAdapter();
+            _lastMediaFolderNumberBeforeFix = GetLastMediaFolderNumberBeforeFix();
+        }
+        #region legacy
         public AzureBlobFileSystem(
             string containerName,
             string rootUrl,
@@ -122,26 +132,40 @@ namespace idseefeld.de.UmbracoAzure
             logger = new LogAdapter();
             _lastMediaFolderNumberBeforeFix = GetLastMediaFolderNumberBeforeFix();
         }
-        private void Init(string containerName, string rootUrl, string connectionString, string mimetypes)
+        #endregion
+        private void Init(string containerName = null, string rootUrl = null, string connectionString = null, string mimetypes = null)
         {
+            _containerName = ConfigurationManager.AppSettings["AzureBlobFileSystem_containerName"];
+            if (!String.IsNullOrEmpty(_containerName))
+                containerName = _containerName;
+            else
+                _containerName = containerName;
+            string _rootUrl = ConfigurationManager.AppSettings["AzureBlobFileSystem_rootUrl"];
+            if (!String.IsNullOrEmpty(_rootUrl))
+                rootUrl = _rootUrl;
+            string _connectionString = ConfigurationManager.AppSettings["AzureBlobFileSystem_connectionString"];
+            if (!String.IsNullOrEmpty(_connectionString))
+                connectionString = _connectionString;
+
             cloudStorageAccount = CloudStorageAccount.Parse(connectionString);
             cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
             mediaContainer = CreateContainer(containerName, BlobContainerPublicAccessType.Blob);
+            _root = rootUrl.TrimEnd('/');
             RootUrl = rootUrl + containerName + "/";
             RootPath = "/";
-            if (mimetypes != null)
-            {
-                var pairs = mimetypes.Split(";".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                this.mimeTypes = new Dictionary<string, string>();
-                foreach (var pair in pairs)
-                {
-                    string[] type = pair.Split("|".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                    if (type.Length == 2)
-                    {
-                        this.mimeTypes.Add(type[0], type[1]);
-                    }
-                }
-            }
+            //if (mimetypes != null)
+            //{
+            //    var pairs = mimetypes.Split(";".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            //    this.mimeTypes = new Dictionary<string, string>();
+            //    foreach (var pair in pairs)
+            //    {
+            //        string[] type = pair.Split("|".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            //        if (type.Length == 2)
+            //        {
+            //            this.mimeTypes.Add(type[0], type[1]);
+            //        }
+            //    }
+            //}
         }
 
         internal AzureBlobFileSystem(
@@ -198,7 +222,7 @@ namespace idseefeld.de.UmbracoAzure
             var segments = path.Replace('\\', '/').Split('/');
             string dir = segments[segments.Length - 1];
             int dirNumber = 0;
-            if (int.TryParse(dir, out dirNumber) 
+            if (int.TryParse(dir, out dirNumber)
                 && dirNumber <= _lastMediaFolderNumberBeforeFix)
                 return;
 
@@ -262,26 +286,45 @@ namespace idseefeld.de.UmbracoAzure
             return GetLastModifiedDateOfBlob(path);
         }
 
+        //public string GetRelativePath(string fullPathOrUrl)
+        //{
+        //    var relativePath = fullPathOrUrl;
+        //    if (!fullPathOrUrl.StartsWith("http"))
+        //    {
+        //        fullPathOrUrl
+        //         .TrimStart(_rootUrl)
+        //         .Replace('/', Path.DirectorySeparatorChar)
+        //         .TrimStart(Path.DirectorySeparatorChar);
+        //    }
+        //    return relativePath;
+        //}
         public string GetRelativePath(string fullPathOrUrl)
         {
             var relativePath = fullPathOrUrl;
-            if (!fullPathOrUrl.StartsWith("http"))
+            if (fullPathOrUrl.Contains(_rootUrl))
             {
-                fullPathOrUrl
-                 .TrimStart(_rootUrl)
-                 .Replace('/', Path.DirectorySeparatorChar)
-                 .TrimStart(Path.DirectorySeparatorChar);
+                relativePath = "/" + _containerName + fullPathOrUrl.Substring(fullPathOrUrl.IndexOf(_rootUrl) + _rootUrl.Length - 1);
             }
             return relativePath;
         }
-
+        //public string GetUrl(string path)
+        //{
+        //    string rVal = path;
+        //    if (!path.StartsWith("http"))
+        //    {
+        //        rVal = RootUrl.TrimEnd("/") + "/" + path
+        //             .TrimStart(Path.DirectorySeparatorChar)
+        //             .Replace(Path.DirectorySeparatorChar, '/')
+        //             .TrimEnd("/");
+        //    }
+        //    return rVal;
+        //}
         public string GetUrl(string path)
         {
             string rVal = path;
-            if (!path.StartsWith("http"))
+            if (!rVal.StartsWith("/" + _containerName))
             {
-                rVal = RootUrl.TrimEnd("/") + "/" + path
-                     .TrimStart(Path.DirectorySeparatorChar)
+                rVal = "/" + _containerName + "/" + path
                      .Replace(Path.DirectorySeparatorChar, '/')
                      .TrimEnd("/");
             }
@@ -365,7 +408,7 @@ namespace idseefeld.de.UmbracoAzure
                 var blob = GetBlockBlob(MakeUri(path));
                 return blob.Exists();
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
@@ -421,7 +464,7 @@ namespace idseefeld.de.UmbracoAzure
         {
             string rVal = path;
             if (!path.StartsWith("http"))
-                rVal = RootUrl + path.Replace('\\', '/');
+                rVal = _root + path.Replace('\\', '/');
             return rVal;
         }
 
@@ -452,41 +495,45 @@ namespace idseefeld.de.UmbracoAzure
 
         private string GetMimeType(string name)
         {
-            string rVal = null;
-            string ext = name.Substring(name.LastIndexOf('.') + 1).ToLower();
-            if (this.mimeTypes != null)
-            {
-                var type = this.mimeTypes.Where(t => t.Key.Equals(ext)).FirstOrDefault();
-                if (!String.IsNullOrEmpty(type.Value))
-                {
-                    rVal = type.Value;
-                }
-            }
-            if (String.IsNullOrEmpty(rVal))
-            {
-                switch (ext)
-                {
-                    case "jpg":
-                    case "jpeg":
-                        rVal = "image/jpeg";
-                        break;
-                    case "png":
-                        rVal = "image/png";
-                        break;
-                    case "gif":
-                        rVal = "image/gif";
-                        break;
-                    case "pdf":
-                        rVal = "application/pdf";
-                        break;
-                    case "air":
-                        rVal = "application/vnd.adobe.air-application-installer-package+zip";
-                        break;
-                    default:
-                        break;
-                }
-            }
-            return rVal;
+            string ext = name.Substring(name.LastIndexOf('.')).ToLower();
+            string mimeType = MimeMapping.GetMimeMapping(ext);
+            return mimeType;
+
+            //string rVal = null;
+            //ext = name.Substring(name.LastIndexOf('.') + 1).ToLower();
+            //if (this.mimeTypes != null)
+            //{
+            //    var type = this.mimeTypes.Where(t => t.Key.Equals(ext)).FirstOrDefault();
+            //    if (!String.IsNullOrEmpty(type.Value))
+            //    {
+            //        rVal = type.Value;
+            //    }
+            //}
+            //if (String.IsNullOrEmpty(rVal))
+            //{
+            //    switch (ext)
+            //    {
+            //        case "jpg":
+            //        case "jpeg":
+            //            rVal = "image/jpeg";
+            //            break;
+            //        case "png":
+            //            rVal = "image/png";
+            //            break;
+            //        case "gif":
+            //            rVal = "image/gif";
+            //            break;
+            //        case "pdf":
+            //            rVal = "application/pdf";
+            //            break;
+            //        case "air":
+            //            rVal = "application/vnd.adobe.air-application-installer-package+zip";
+            //            break;
+            //        default:
+            //            break;
+            //    }
+            //}
+            //return rVal;
         }
     }
 }
