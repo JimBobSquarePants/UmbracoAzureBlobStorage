@@ -23,6 +23,13 @@ WAStorageEmulator init -sqlinstance SQLEXPRESS2008
 
 WAStorageEmulator start
 
+Update note: **With Micosoft Azure SDK for .Net (VS 2013) - 2.6** the emulator got a new name:
+
+*WAStorageEmulator -> AzureStorageEmulator*
+
+It also uses a new database. So be carefull when updating :)
+
+
 Book recommendation
 -------------------
 The book "Programming Windows Azure [Kindle Edition]" form "Sriram Krishnan" gives you a good introduction into Azure Storage.
